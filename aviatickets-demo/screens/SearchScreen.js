@@ -8,7 +8,7 @@ export default function SearchScreen({ navigation }) {
 
   const search = async () => {
     try {
-      const res = await fetch(`http://192.168.31.31:3000/flights/search?from=${from}&to=${to}&date=${date}`);
+      const res = await fetch('http://192.168.31.31:3000/flights/search?from=' + from + '&to=' + to + '&date=' + date);
       const data = await res.json();
       navigation.navigate('Results', { results: data.results || [] });
     } catch (e) {
