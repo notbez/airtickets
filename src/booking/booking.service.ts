@@ -11,6 +11,10 @@ export interface Booking {
   status: string;
   providerBookingId: string;
   provider?: string;
+  // Новые поля для PDF
+  flightNumber?: string;
+  departTime?: string;
+  arriveTime?: string;
 }
 
 @Injectable()
@@ -21,14 +25,19 @@ export class BookingService {
     const id = randomUUID();
     const booking: Booking = {
       id,
-      from: body.from || 'SVO',
-      to: body.to || 'LED',
+      from: body.from || 'Санкт-Петербург',
+      to: body.to || 'Москва',
       date: body.date || new Date().toISOString().split('T')[0],
-      price: body.price || 6500,
+      price: body.price || 5600,
       contact: body.contact || {},
       providerBookingId: `onelya-${id}`,
       status: 'CONFIRMED',
       provider: 'onelya-mock',
+
+      // Новые поля с дефолтными значениями
+      flightNumber: body.flightNumber || 'SU 5411',
+      departTime: body.departTime || '23:15',
+      arriveTime: body.arriveTime || '23:55',
     };
 
     this.bookings.push(booking);
