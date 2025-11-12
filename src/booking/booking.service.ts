@@ -7,7 +7,10 @@ export interface Booking {
   to?: string;
   date?: string;
   price?: number;
-  contact?: { email?: string };
+  contact?: {
+    email?: string;
+    name?: string;
+  };
   status: string;
   providerBookingId: string;
   provider?: string;

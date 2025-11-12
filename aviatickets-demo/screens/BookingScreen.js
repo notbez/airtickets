@@ -7,7 +7,12 @@ export default function BookingScreen({ route, navigation }) {
 
   const book = async () => {
     try {
-      const body = { flightId: flight.id || 'mock', contact: { email }, price: flight.price };
+      // Передаём все данные о рейсе
+      const body = {
+        ...flight, // включает from, to, date, departTime, arriveTime, price, provider и т.д.
+        contact: { email },
+      };
+
       const res = await fetch('https://airtickets-bcpu.onrender.com/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -22,15 +27,22 @@ export default function BookingScreen({ route, navigation }) {
       navigation.navigate('Ticket', { booking: data });
     } catch (err) {
       alert('Ошибка соединения с сервером');
-      console.error(err);
+      console.error('Booking error:', err);
     }
   };
 
   return (
     <View style={styles.container}>
       <Text>Рейс: {flight.from} → {flight.to}</Text>
+      <Text>Дата: {flight.date}</Text>
+      <Text>Вылет: {flight.departTime} — Прилет: {flight.arriveTime}</Text>
       <Text>Цена: {flight.price}₽</Text>
-      <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Ваш e-mail" />
+      <TextInput
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Ваш e-mail"
+      />
       <Button title="Оформить бронь" onPress={book} />
     </View>
   );

@@ -52,39 +52,44 @@ export class BookingController {
     doc.fontSize(16).text('Маршрутная квитанция (Itinerary Receipt)', { align: 'left' });
     doc.moveDown(1);
 
-    // Пассажир и билет
-    doc.fontSize(12).text('Пассажир: Иванов Иван Иванович');
-    doc.text('Билет №: AT-' + booking.id.slice(0, 8).toUpperCase());
-    doc.moveDown(0.5);
-    doc.text('_______________________________________');
-    doc.moveDown(1.5);
-
-    // Маршрут
-    doc.fontSize(12).fillColor(black).text('Маршрут следования / Route');
-    doc.moveDown(0.2);
-    doc.fontSize(26).fillColor(red).text(`${booking.from} - ${booking.to}`);
-    doc.moveDown(0.8);
-
-    // Дата и рейс
-    doc.fontSize(12).fillColor(black).text(`Дата вылета: ${booking.date}`);
-    doc.text(`Рейс: ${booking.flightNumber || 'ONL' + booking.id.slice(0, 4).toUpperCase()}`);
-    doc.moveDown(0.8);
-
-    // Время
-    const depart = booking.departTime || '09:00';
-    const arrive = booking.arriveTime || '12:30';
-    doc.fontSize(28).fillColor(red).text(`${depart}  —  ${arrive}`);
-    doc.moveDown(1.2);
-
-    // Оплата
-    doc.fontSize(12).fillColor(black).text('Сведения об оплате / Payment info');
-    doc.moveDown(0.3);
-    doc.fontSize(22).fillColor(red).text(`${booking.price} RUB`);
-    doc.moveDown(2);
-
-    // Контакты
-    doc.fontSize(10).fillColor(black).text('Aviatickets Demo / Onelya Test Provider', { align: 'center' });
-    doc.text('support@aviatickets-demo.com', { align: 'center' });
+        // Пассажир и билет
+        doc.fontSize(12).text(`Пассажир: ${booking.contact?.name || 'Иванов Иван Иванович'}`);
+        doc.text(`Билет №: AT-${booking.id.slice(0, 8).toUpperCase()}`);
+        doc.moveDown(0.5);
+        doc.text('_______________________________________');
+        doc.moveDown(1.5);
+    
+        // Маршрут
+        const fromCity = booking.from || 'Не указано';
+        const toCity = booking.to || 'Не указано';
+    
+        doc.fontSize(12).fillColor(black).text('Маршрут следования / Route');
+        doc.moveDown(0.2);
+        doc.fontSize(26).fillColor(red).text(`${fromCity} - ${toCity}`);
+        doc.moveDown(0.8);
+    
+        // Дата и рейс
+        doc.fontSize(12).fillColor(black).text(`Дата вылета: ${booking.date}`);
+        const flightNumber = booking.flightNumber || `ONL-${booking.id.slice(0, 4).toUpperCase()}`;
+        doc.text(`Рейс: ${flightNumber}`);
+        doc.moveDown(0.8);
+    
+        // Время (берём из booking, если есть — иначе мок)
+        const depart = booking.departTime || '09:00';
+        const arrive = booking.arriveTime || '12:30';
+    
+        doc.fontSize(28).fillColor(red).text(`${depart}  —  ${arrive}`);
+        doc.moveDown(1.2);
+    
+        // Оплата
+        doc.fontSize(12).fillColor(black).text('Сведения об оплате / Payment info');
+        doc.moveDown(0.3);
+        doc.fontSize(22).fillColor(red).text(`${booking.price} RUB`);
+        doc.moveDown(2);
+    
+        // Контакты
+        doc.fontSize(10).fillColor(black).text('Aviatickets Demo / Onelya Test Provider', { align: 'center' });
+        doc.text('support@aviatickets-demo.com', { align: 'center' });
 
     doc.end();
     await new Promise(resolve => doc.on('end', resolve));
