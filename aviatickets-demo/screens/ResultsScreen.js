@@ -1,29 +1,28 @@
 import React from 'react';
-import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import FlightCard from '../components/FlightCard';
 
 export default function ResultsScreen({ route, navigation }) {
   const { results } = route.params;
+
+  const onBook = (flight) => {
+    navigation.navigate('Booking', { flight });
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Результаты поиска</Text>
       <FlatList
         data={results}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text>{item.from} → {item.to}</Text>
-            <Text>{item.date} — {item.price}₽</Text>
-            <Button title="Бронировать" onPress={() => navigation.navigate('Booking', { flight: item })}/>
-          </View>
-        )}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <FlightCard item={item} onBook={onBook} />}
+        ListEmptyComponent={<Text style={{textAlign:'center', marginTop:20}}>Ничего не найдено</Text>}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:{flex:1,padding:16,backgroundColor:'#fff'},
-  title:{fontSize:18,fontWeight:'600',marginBottom:10},
-  card:{borderWidth:1,borderColor:'#ddd',borderRadius:8,padding:12,marginBottom:10}
+  container:{flex:1,padding:16,backgroundColor:'#f7f7f7'},
+  title:{fontSize:18,fontWeight:'600',marginBottom:10}
 });
