@@ -1,19 +1,26 @@
+// navigation/AppNavigator.js
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import SearchScreen from '../screens/SearchScreen';
-import ResultsScreen from '../screens/ResultsScreen';
-import BookingScreen from '../screens/BookingScreen';
-import TicketScreen from '../screens/TicketScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import SplashScreen from '../screens/SplashScreen';
+import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
 
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator initialRouteName="Search">
-      <Stack.Screen name="Search" component={SearchScreen} options={{ title: 'Search flights' }} />
-      <Stack.Screen name="Results" component={ResultsScreen} options={{ title: 'Results' }} />
-      <Stack.Screen name="Booking" component={BookingScreen} options={{ title: 'Booking' }} />
-      <Stack.Screen name="Ticket" component={TicketScreen} options={{ title: 'Ticket' }} />
-    </Stack.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator
+        initialRouteName="Splash"
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="SignUp" component={SignUpScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }

@@ -1,11 +1,24 @@
+// App.js
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { View, ActivityIndicator, StatusBar } from 'react-native';
 import AppNavigator from './navigation/AppNavigator';
+import { useFonts, Roboto_400Regular, Roboto_500Medium, Roboto_700Bold } from '@expo-google-fonts/roboto';
 
 export default function App() {
-  return (
-    <NavigationContainer>
-      <AppNavigator />
-    </NavigationContainer>
-  );
+  const [fontsLoaded] = useFonts({
+    Roboto_400Regular,
+    Roboto_500Medium,
+    Roboto_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#29A9E0" />
+        <StatusBar barStyle="default" />
+      </View>
+    );
+  }
+
+  return <AppNavigator />;
 }
