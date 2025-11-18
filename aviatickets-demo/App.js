@@ -1,8 +1,15 @@
 // App.js
 import React from 'react';
 import { View, ActivityIndicator, StatusBar } from 'react-native';
-import AppNavigator from './navigation/AppNavigator';
-import { useFonts, Roboto_400Regular, Roboto_500Medium, Roboto_700Bold } from '@expo-google-fonts/roboto';
+import RootNavigator from './navigation/RootNavigation';
+import { NavigationContainer } from '@react-navigation/native';
+
+import {
+  useFonts,
+  Roboto_400Regular,
+  Roboto_500Medium,
+  Roboto_700Bold,
+} from '@expo-google-fonts/roboto';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -20,5 +27,9 @@ export default function App() {
     );
   }
 
-  return <AppNavigator />;
+  return (
+    <NavigationContainer>
+      <RootNavigator />
+    </NavigationContainer>
+  );
 }

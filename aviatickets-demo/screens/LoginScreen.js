@@ -11,8 +11,9 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
 
   const handleSignIn = () => {
+    console.log('nav state:', JSON.stringify(navigation.getState(), null, 2));
     // ВРЕМЕННЫЙ ВХОД — перейти на главную страницу
-    navigation.navigate('MainTabs');
+    navigation.replace('MainTabs');
   };
 
   return (
