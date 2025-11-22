@@ -1,135 +1,82 @@
-import { Controller, Post, Body, Get, Param, Res } from '@nestjs/common';
+// src/booking/booking.controller.ts
+import { Controller, Post, Body, Get, Param, Res, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { BookingService } from './booking.service';
-import * as PDFDocument from 'pdfkit';
-import * as nodemailer from 'nodemailer';
 import * as streamBuffers from 'stream-buffers';
+import * as nodemailer from 'nodemailer';
 import * as dotenv from 'dotenv';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Logger } from '@nestjs/common';
 
 dotenv.config();
 
 @Controller('booking')
 export class BookingController {
+  private readonly logger = new Logger(BookingController.name);
+
   constructor(private readonly bookingService: BookingService) {}
 
-  @Post()
-  create(@Body() body: any) {
-    return this.bookingService.create(body);
+  // create booking: will try Onelya then fallback
+  @Post('create')
+  async create(@Body() body: any) {
+    // Expect body: { from, to, date, price, contact:{email,name}, flightNumber, departTime, arriveTime, segments }
+    const result = await this.bookingService.createOnelya(body);
+    // result: { success, booking, raw, error }
+    if (result.booking) return { ok: true, booking: result.booking, raw: result.raw, onelya_ok: result.success };
+    return { ok: false, error: result.error };
   }
 
+  // confirm booking (by providerBookingId)
+  @Post('confirm')
+  async confirm(@Body() body: { providerBookingId: string }) {
+    if (!body?.providerBookingId) return { ok: false, message: 'providerBookingId required' };
+    const result = await this.bookingService.confirmOnelya(body.providerBookingId);
+    return result;
+  }
+
+  // get ticket / blank by our internal id or provider id (try both)
   @Get(':id/pdf')
   async getPdf(@Param('id') id: string, @Res() res: Response) {
-    const booking = this.bookingService.getById(id);
+    // id can be our internal id or providerBookingId. Try to find booking
+    const byInternal = this.bookingService.getById(id);
+    const booking = byInternal || this.bookingService.findByProviderId(id);
+
     if (!booking) {
-      res.status(404).send('Booking not found');
-      return;
+      return res.status(HttpStatus.NOT_FOUND).json({ ok: false, message: 'Booking not found' });
     }
 
-    // Создаём PDF документ
-    const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    const bufferStream = new streamBuffers.WritableStreamBuffer();
-    doc.pipe(bufferStream);
+    // Attempt to get blank from Onelya using providerBookingId
+    const providerId = booking.providerBookingId;
+    const blank = await this.bookingService.getBlank(providerId);
 
-    // Загружаем шрифт (Noto Sans)
-    const fontPath = path.resolve(__dirname, '..', 'assets', 'fonts', 'NotoSans-Regular.ttf');
-    if (fs.existsSync(fontPath)) {
-      doc.registerFont('NotoSans', fontPath);
-      doc.font('NotoSans');
-      console.log('[PDF] Font loaded:', fontPath);
+    if (blank?.error) {
+      // fallback: create simple PDF locally (very small)
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ size: 'A4', margin: 40 });
+      const stream = new streamBuffers.WritableStreamBuffer();
+      doc.pipe(stream);
+
+      doc.fontSize(16).text('Booking (fallback)', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`ID: ${booking.id}`);
+      doc.text(`Route: ${booking.from} → ${booking.to}`);
+      doc.text(`Date: ${booking.date}`);
+      doc.text(`Price: ${booking.price} RUB`);
+      doc.end();
+
+      await new Promise((r) => doc.on('end', r));
+      const buff = stream.getContents();
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=booking-${booking.id}.pdf`);
+      return res.send(buff);
+    }
+
+    if (blank.type === 'pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=booking-${booking.id}.pdf`);
+      return res.send(blank.buffer);
     } else {
-      console.error('[PDF] Font not found:', fontPath);
-      doc.font('Helvetica');
+      // JSON response with blank content
+      return res.json({ ok: true, blank: blank.data, booking });
     }
-
-    const red = '#d70000';
-    const black = '#000000';
-
-    // Шапка
-    doc.fillColor(black).fontSize(14).text('Aviatickets Demo', { align: 'left' });
-    doc.moveDown(0.2);
-    doc.fontSize(16).text('Маршрутная квитанция (Itinerary Receipt)', { align: 'left' });
-    doc.moveDown(1);
-
-        // Пассажир и билет
-        doc.fontSize(12).text(`Пассажир: ${booking.contact?.name || 'Иванов Иван Иванович'}`);
-        doc.text(`Билет №: AT-${booking.id.slice(0, 8).toUpperCase()}`);
-        doc.moveDown(0.5);
-        doc.text('_______________________________________');
-        doc.moveDown(1.5);
-    
-        // Маршрут
-        const fromCity = booking.from || 'Не указано';
-        const toCity = booking.to || 'Не указано';
-    
-        doc.fontSize(12).fillColor(black).text('Маршрут следования / Route');
-        doc.moveDown(0.2);
-        doc.fontSize(26).fillColor(red).text(`${fromCity} - ${toCity}`);
-        doc.moveDown(0.8);
-    
-        // Дата и рейс
-        doc.fontSize(12).fillColor(black).text(`Дата вылета: ${booking.date}`);
-        const flightNumber = booking.flightNumber || `ONL-${booking.id.slice(0, 4).toUpperCase()}`;
-        doc.text(`Рейс: ${flightNumber}`);
-        doc.moveDown(0.8);
-    
-        // Время (берём из booking, если есть — иначе мок)
-        const depart = booking.departTime || '09:00';
-        const arrive = booking.arriveTime || '12:30';
-    
-        doc.fontSize(28).fillColor(red).text(`${depart}  —  ${arrive}`);
-        doc.moveDown(1.2);
-    
-        // Оплата
-        doc.fontSize(12).fillColor(black).text('Сведения об оплате / Payment info');
-        doc.moveDown(0.3);
-        doc.fontSize(22).fillColor(red).text(`${booking.price} RUB`);
-        doc.moveDown(2);
-    
-        // Контакты
-        doc.fontSize(10).fillColor(black).text('Aviatickets Demo / Onelya Test Provider', { align: 'center' });
-        doc.text('support@aviatickets-demo.com', { align: 'center' });
-
-    doc.end();
-    await new Promise(resolve => doc.on('end', resolve));
-    const pdfBuffer = bufferStream.getContents();
-
-    // Отправка PDF на почту (если указан e-mail)
-    if (booking.contact?.email && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: Number(process.env.SMTP_PORT) || 465,
-          secure: true,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
-
-        await transporter.sendMail({
-          from: `"Aviatickets Demo" <${process.env.SMTP_USER}>`,
-          to: booking.contact.email,
-          subject: 'Your Flight Booking Receipt',
-          text: 'Please find attached your booking confirmation.',
-          attachments: [
-            {
-              filename: `booking-${booking.id}.pdf`,
-              content: pdfBuffer,
-            },
-          ],
-        });
-
-        console.log(`[EMAIL] Receipt sent to ${booking.contact.email}`);
-      } catch (err) {
-        console.error('[EMAIL] Error:', err);
-      }
-    }
-
-    // Отдаём PDF в браузере
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename=booking-${id}.pdf`);
-    res.send(pdfBuffer);
   }
 }

@@ -1,62 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+// flights.controller.ts
+import { Controller, Get, Query } from '@nestjs/common';
+import { FlightsService } from './flights.service';
 
-@Injectable()
-export class FlightsService {
-  private readonly login = 'trevel_manager';
-  private readonly password = 'Dy0Y(CWo';
-  private readonly pos = 'ВСТАВЬ_СЮДА_POS'; // ← обязательно заменить
-  private readonly baseUrl = 'https://test.onelya.ru/api';
+@Controller('flights')
+export class FlightsController {
+  constructor(private readonly flightsService: FlightsService) {}
 
-  constructor(private readonly http: HttpService) {}
-
-  async search(query: any) {
-    const { from, to, date } = query;
-
-    const body = {
-      AdultQuantity: 1,
-      ChildQuantity: 0,
-      BabyWithoutPlaceQuantity: 0,
-      BabyWithPlaceQuantity: 0,
-      YouthQuantity: 0,
-      SeniorQuantity: 0,
-      Tariff: 'Standard',
-      ServiceClass: 'Economic',
-      DirectOnly: false,
-      Segments: [
-        {
-          OriginCode: from,
-          DestinationCode: to,
-          DepartureDate: `${date}T00:00:00`,
-        },
-      ],
-    };
-
-    const token = Buffer.from(`${this.login}:${this.password}`).toString('base64');
-
-    const headers = {
-      Authorization: `Basic ${token}`,
-      Pos: this.pos,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
-
-    try {
-      const response = await firstValueFrom(
-        this.http.post(`${this.baseUrl}/Avia/V1/Search/RoutePricing`, body, {
-          headers,
-        }),
-      );
-
-      return response.data;
-
-    } catch (error) {
-      console.error('Onelya error:', error?.response?.data || error);
-      return {
-        error: true,
-        details: error?.response?.data || error,
-      };
-    }
+  @Get('search')
+  search(@Query() query: any) {
+    return this.flightsService.search(query);
   }
 }
